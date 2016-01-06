@@ -24,7 +24,7 @@ Unfortunately, the app was poorly written and there are some bugs/features need 
     * Add a way for user to open bookmark page, use one of the below patterns or use your creativity to do it :)
         * Screen with [tabs](http://1.bp.blogspot.com/-VhMIJ24KNe4/VKvWaLY3flI/AAAAAAAA0DA/faVJBT4-WJk/s1600/1.png)
         * Add a spinner into the topbar similar to [this](spinner_navigation.gif)
-9. Additional request: add a feature to post video to Facebook
+9. Run this app on Android 6.0 will crash when user attempt to take a picture. Could you investigate why and fix it?
         
 ## Refereneces:
 - All Facebook-related apis can be found [here](https://developers.facebook.com/docs/)
