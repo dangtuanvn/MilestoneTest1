@@ -1,0 +1,45 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+
+    defaultConfig {
+        applicationId "com.hasbrain.milestonetest"
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+    }
+    signingConfigs {
+        release {
+            storeFile file("../keystore/milestone.keystore")
+            storePassword "h@sBrain"
+            keyAlias "release"
+            keyPassword "h@sBrain"
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies {
+    def androidSupportLibVersion = "23.1.1"
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile "com.android.support:appcompat-v7:${androidSupportLibVersion}"
+    compile "com.android.support:design:${androidSupportLibVersion}"
+    compile 'com.facebook.android:facebook-android-sdk:4.8.2'
+    compile 'com.squareup.picasso:picasso:2.5.2'
+    compile "com.android.support:recyclerview-v7:${androidSupportLibVersion}"
+    compile "com.jakewharton:butterknife:7.0.1"
+    compile "com.google.code.gson:gson:2.4"
+}
