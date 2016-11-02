@@ -40,6 +40,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -94,7 +96,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             protected void onCurrentAccessTokenChanged(
                     AccessToken oldAccessToken,
                     AccessToken currentAccessToken) {
-
                 if (currentAccessToken == null){
                     logout();
                 }
@@ -126,21 +127,43 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         super.onActivityResult(requestCode, resultCode, data);
         if (REQUEST_IMAGE == requestCode && resultCode == RESULT_OK) {
             Bitmap bitmapData = data.getParcelableExtra("data");
-            OutputStream os = new OutputStream() {
-                @Override
-                public void write(int oneByte) throws IOException {
-
-                }
-            };
+//            Log.i("IMAGE UPLOAD", "Width = " + bitmapData.getWidth() + " Height = " + bitmapData.getHeight());
 
             if (bitmapData != null) {
-                bitmapData.compress(Bitmap.CompressFormat.JPEG, 80, os);
-                uploadPhotoToFacebook(bitmapData);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                bitmapData.compress(Bitmap.CompressFormat.PNG, 100, out);
+                Bitmap decoded = BitmapFactory.decodeStream(new ByteArrayInputStream(out.toByteArray()));
+
+                uploadPhotoToFacebook(decoded);
             }
         } else {
             callbackManager.onActivityResult(requestCode, resultCode, data);
         }
     }
+
+//    public Bitmap createAvatar(Bitmap bitmapData){
+//        ByteArrayOutputStream out = new ByteArrayOutputStream();
+//        bitmapData.compress(Bitmap.CompressFormat.PNG, 100, out);
+//
+//        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+//        bmOptions.inJustDecodeBounds = true;
+//        BitmapFactory.decodeSt(photoPath, bmOptions);
+//        int photoW = bmOptions.outWidth;
+//        int photoH = bmOptions.outHeight;
+//
+//        // Log.i("Measures", "W " + photoW + " H " + photoH + " targetW " + targetW + " targetH " + targetH);
+//        // Determine how much to scale down the image
+//        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+//
+//        // Decode the image file into a Bitmap sized to fill the View
+//        bmOptions.inJustDecodeBounds = false;
+//        bmOptions.inSampleSize = scaleFactor;
+//        bmOptions.inPurgeable = true;
+//
+//        Bitmap bitmap = BitmapFactory.decodeFile(photoPath, bmOptions);
+//        return bitmap;
+//    }
+
 
 //    public Bitmap createUploadPhoto(Bitmap bitmapData){
 //        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
