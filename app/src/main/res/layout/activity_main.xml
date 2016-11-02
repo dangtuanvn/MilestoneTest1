@@ -7,7 +7,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="com.hasbrain.milestonetest.MainActivity">
 
-
     <com.facebook.login.widget.LoginButton
         android:id="@+id/bt_fb_logout"
         android:layout_width="match_parent"
