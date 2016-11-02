@@ -155,20 +155,14 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        loadingSymbol.setVisibility(View.VISIBLE);
-        loadingText.setVisibility(View.VISIBLE);
-
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {      
         super.onActivityResult(requestCode, resultCode, data);
         if (REQUEST_IMAGE == requestCode && resultCode == RESULT_OK) {
             Bitmap bitmapData = data.getParcelableExtra("data");
 //            Log.i("IMAGE UPLOAD", "Width = " + bitmapData.getWidth() + " Height = " + bitmapData.getHeight());
 
             if (bitmapData != null) {
-
-                uploadPhotoToFacebook(bitmapData);
-                loadingSymbol.setVisibility(View.GONE);
-                loadingText.setVisibility(View.GONE);
+                uploadPhotoToFacebook(bitmapData);          
             }
         } else {
             callbackManager.onActivityResult(requestCode, resultCode, data);
