@@ -196,7 +196,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         }
 
         public void bind(FacebookImage facebookImage) {
-            picasso.load(facebookImage.getImageUrl()).into(ivFacebookPhoto);
+            picasso.load(facebookImage.getImageUrl())
+                    .resize(1280, 960)
+                    .centerCrop()
+                    .into(ivFacebookPhoto);
             tvImageName.setText(facebookImage.getName());
             tvImageTime.setText(facebookImage.getCreatedTime());
         }

@@ -41,7 +41,8 @@ public class FacebookImageDeserializer extends EasyDeserializer<FacebookImage> {
 
     public String chooseImageFromArray(JsonArray images) {
         String imageUrl = null;
-        int i = images.size() - 1;
+        int i = 0; // Get the first image in the array (highest quality)
+        // int i = images.size() ;
         JsonObject imageJsonObject = images.get(i).getAsJsonObject();
         imageUrl = getStringValue(imageJsonObject.get("source"), null);
         return imageUrl;
