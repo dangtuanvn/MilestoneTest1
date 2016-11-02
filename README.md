@@ -26,7 +26,7 @@ Unfortunately, the app was poorly written and there are some bugs/features need 
         * Add a spinner into the topbar similar to [this](spinner_navigation.gif)
 9. Run this app on Android 6.0 will crash when user attempt to take a picture. Could you investigate why and fix it?
         
-## Refereneces:
+## References:
 - All Facebook-related apis can be found [here](https://developers.facebook.com/docs/)
 
 - You can use your own Facebook account or use two test accounts provided below:
