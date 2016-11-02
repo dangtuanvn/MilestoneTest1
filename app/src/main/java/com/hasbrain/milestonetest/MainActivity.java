@@ -1,5 +1,7 @@
 package com.hasbrain.milestonetest;
 
+import com.facebook.AccessTokenTracker;
+import com.facebook.login.widget.LoginButton;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -20,6 +22,7 @@ import com.squareup.picasso.Picasso;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.StringDef;
@@ -36,10 +39,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
 import java.util.ArrayList;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -59,8 +69,18 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     SwipeRefreshLayout swipeRefreshLayout;
     @Bind(R.id.fab)
     FloatingActionButton floatingActionButton;
+
     @Bind(R.id.my_toolbar)
     Toolbar myToolbar;
+
+//    @Bind(R.id.bt_fb_logout)
+//    LoginButton btFacebookLogout;
+    @Bind(R.id.loading_symbol)
+    ProgressBar loadingSymbol;
+    @Bind(R.id.loading_text)
+    TextView loadingText;
+
+
     private Gson gson;
     private CallbackManager callbackManager;
     private LinearLayoutManager mLayoutManager;
@@ -72,6 +92,21 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         setContentView(R.layout.activity_main);
         setTitle("Your facebook photos");
         ButterKnife.bind(this);
+        loadingSymbol.setVisibility(View.GONE);
+        loadingText.setVisibility(View.GONE);
+
+        AccessTokenTracker accessTokenTracker = new AccessTokenTracker() {
+            @Override
+            protected void onCurrentAccessTokenChanged(
+                    AccessToken oldAccessToken,
+                    AccessToken currentAccessToken) {
+
+                if (currentAccessToken == null){
+                    logout();
+                }
+            }
+        };
+
         swipeRefreshLayout.setOnRefreshListener(this);
         mLayoutManager =new LinearLayoutManager(this);
         setSupportActionBar(myToolbar);
@@ -101,8 +136,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
 
             case R.id.action_logout:
-                // User chose the "Favorite" action, mark the current item
-                // as a favorite...
+                AccessToken.setCurrentAccessToken(null);
                 return true;
 
             default:
@@ -121,16 +155,49 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        loadingSymbol.setVisibility(View.VISIBLE);
+        loadingText.setVisibility(View.VISIBLE);
+
         super.onActivityResult(requestCode, resultCode, data);
         if (REQUEST_IMAGE == requestCode && resultCode == RESULT_OK) {
             Bitmap bitmapData = data.getParcelableExtra("data");
+            OutputStream os = new OutputStream() {
+                @Override
+                public void write(int oneByte) throws IOException {
+
+                }
+            };
+
             if (bitmapData != null) {
+                bitmapData.compress(Bitmap.CompressFormat.JPEG, 80, os);
                 uploadPhotoToFacebook(bitmapData);
+                loadingSymbol.setVisibility(View.GONE);
+                loadingText.setVisibility(View.GONE);
             }
         } else {
             callbackManager.onActivityResult(requestCode, resultCode, data);
         }
     }
+
+//    public Bitmap createUploadPhoto(Bitmap bitmapData){
+//        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+//        bmOptions.inJustDecodeBounds = true;
+//        BitmapFactory.decodefi(bitmapData, bmOptions);
+//        int photoW = bmOptions.outWidth;
+//        int photoH = bmOptions.outHeight;
+//
+//        // Log.i("Measures", "W " + photoW + " H " + photoH + " targetW " + targetW + " targetH " + targetH);
+//        // Determine how much to scale down the image
+//        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+//
+//        // Decode the image file into a Bitmap sized to fill the View
+//        bmOptions.inJustDecodeBounds = false;
+//        bmOptions.inSampleSize = scaleFactor;
+//        bmOptions.inPurgeable = true;
+//
+//        Bitmap bitmap = BitmapFactory.decodeFile(photoPath, bmOptions);
+//        return bitmap;
+//    }
 
     private void openCameraForImage() {
         Intent openCameraForImageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -168,6 +235,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     private void doUploadPhotoToFacebook(Bitmap imageFile, AccessToken currentAccessToken) {
+        loadingSymbol.setVisibility(View.VISIBLE);
+        loadingText.setVisibility(View.VISIBLE);
         GraphRequest graphRequest = GraphRequest
                 .newUploadPhotoRequest(currentAccessToken, "me/photos", imageFile,
                         "Upload from hasBrain Milestone test", null, new GraphRequest.Callback() {
@@ -179,6 +248,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                                     Toast.makeText(MainActivity.this, "Upload image success", Toast.LENGTH_LONG).show();
                                     getUserPhotos(TYPE_UPLOADED, null);
                                 }
+                                loadingSymbol.setVisibility(View.GONE);
+                                loadingText.setVisibility(View.GONE);
                             }
                         });
         graphRequest.executeAsync();
@@ -301,5 +372,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         public int getItemCount() {
             return facebookImages != null ? facebookImages.size() : 0;
         }
+    }
+
+    private void logout(){
+        Intent startSplashIntent = new Intent(MainActivity.this, SplashActivity.class);
+        startActivity(startSplashIntent);
+        finish();
     }
 }

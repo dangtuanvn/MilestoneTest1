@@ -4,9 +4,9 @@
     <!-- "Mark Favorite", should appear as action button if possible -->
     <item
         android:id="@+id/action_logout"
-        android:icon="@drawable/ic_bookmark_star_unselected"
-        android:title="Log out"
-        app:showAsAction="ifRoom"/>
+        android:icon="@drawable/facebook"
+        app:showAsAction="ifRoom"
+        android:title="log out" />
 
 
 </menu>
