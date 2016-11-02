@@ -29,11 +29,4 @@
         app:rippleColor="@color/fab_ripple_color"
         app:backgroundTint="@color/fab_color_state_list"
         />
-
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/loadmore_btn"
-        android:text="LOAD MORE"
-        android:layout_gravity="center_horizontal|top" />
 </FrameLayout>
