@@ -165,6 +165,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 FacebookPhotoResponse facebookPhotoResponse = gson
                         .fromJson(response.getRawResponse(), FacebookPhotoResponse.class);
                 displayPhotos(facebookPhotoResponse.getData());
+                //remove loading indicator
+                swipeRefreshLayout.setRefreshing(false);
             }
         });
         graphRequest.executeAsync();
@@ -187,6 +189,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         TextView tvImageName;
         @Bind(R.id.tv_image_time)
         TextView tvImageTime;
+        @Bind(R.id.tv_image_size)
+        TextView tvImageSize;
         private Picasso picasso;
 
         public FacebookImageVH(Picasso picasso, View itemView) {
@@ -202,6 +206,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     .into(ivFacebookPhoto);
             tvImageName.setText(facebookImage.getName());
             tvImageTime.setText(facebookImage.getCreatedTime());
+            //set image view
+            tvImageSize.setText("photo height = "+ivFacebookPhoto.getHeight()+", photo width = "+ivFacebookPhoto.getWidth());
         }
     }
 
