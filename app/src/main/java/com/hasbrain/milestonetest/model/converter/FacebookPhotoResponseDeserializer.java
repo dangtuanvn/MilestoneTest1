@@ -42,7 +42,7 @@ public class FacebookPhotoResponseDeserializer extends EasyDeserializer<Facebook
             }
         }
         else{
-
+            facebookPhotoResponse.setData(null);
         }
 
 

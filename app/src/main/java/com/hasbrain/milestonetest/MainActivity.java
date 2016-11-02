@@ -28,14 +28,18 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,9 +59,13 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     SwipeRefreshLayout swipeRefreshLayout;
     @Bind(R.id.fab)
     FloatingActionButton floatingActionButton;
+    @Bind(R.id.my_toolbar)
+    Toolbar myToolbar;
     private Gson gson;
     private CallbackManager callbackManager;
-
+    private LinearLayoutManager mLayoutManager;
+    private String afterpic;
+    private List<FacebookImage> facebookImageContainer = new ArrayList<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,19 +73,45 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         setTitle("Your facebook photos");
         ButterKnife.bind(this);
         swipeRefreshLayout.setOnRefreshListener(this);
-        rvPhotos.setLayoutManager(new LinearLayoutManager(this));
+        mLayoutManager =new LinearLayoutManager(this);
+        setSupportActionBar(myToolbar);
+        rvPhotos.setLayoutManager(mLayoutManager);
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 openCameraForImage();
             }
         });
-        getUserPhotos(TYPE_UPLOADED, "MTI0NzQxNzExMjM1Njc4");
+        getUserPhotos(TYPE_UPLOADED, null);
         gson = new GsonBuilder()
                 .registerTypeAdapter(FacebookImage.class, new FacebookImageDeserializer())
                 .registerTypeAdapter(FacebookPhotoResponse.class, new FacebookPhotoResponseDeserializer())
                 .create();
     }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+
+
+            case R.id.action_logout:
+
+                return true;
+
+            default:
+                // If we got here, the user's action was not recognized.
+                // Invoke the superclass to handle it.
+                return super.onOptionsItemSelected(item);
+
+        }
+    }
+
 
     @Override
     public void onRefresh() {
@@ -164,8 +198,13 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 Log.d("hasBrain", "Graph response " + response.toString());
                 FacebookPhotoResponse facebookPhotoResponse = gson
                         .fromJson(response.getRawResponse(), FacebookPhotoResponse.class);
-                displayPhotos(facebookPhotoResponse.getData());
-                facebookPhotoResponse.getAfter();
+                if(facebookPhotoResponse.getData()==null){
+                    Toast.makeText(MainActivity.this, "No more data to be load", Toast.LENGTH_LONG).show();
+                }
+                else{
+                facebookImageContainer.addAll(facebookPhotoResponse.getData());
+                displayPhotos(facebookImageContainer);
+                afterpic= facebookPhotoResponse.getAfter();}
                 //remove loading indicator
                 swipeRefreshLayout.setRefreshing(false);
             }
@@ -175,6 +214,27 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void displayPhotos(List<FacebookImage> data) {
         rvPhotos.setAdapter(new FacebookImageAdapter(getLayoutInflater(), Picasso.with(this), data));
+        rvPhotos.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                int pastVisiblesItems, visibleItemCount, totalItemCount;
+
+                if(dy > 0) //check for scroll down
+                {
+                    visibleItemCount = mLayoutManager.getChildCount();
+                    totalItemCount = mLayoutManager.getItemCount();
+                    pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition();
+
+
+                        if ( (visibleItemCount + pastVisiblesItems) >= totalItemCount)
+                        {
+                            getUserPhotos(TYPE_UPLOADED, afterpic);
+                        }
+
+                }
+            }
+        });
     }
 
     @StringDef({TYPE_UPLOADED, TYPE_TAGGED})
