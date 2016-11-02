@@ -165,6 +165,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 FacebookPhotoResponse facebookPhotoResponse = gson
                         .fromJson(response.getRawResponse(), FacebookPhotoResponse.class);
                 displayPhotos(facebookPhotoResponse.getData());
+                //remove loading indicator
+                swipeRefreshLayout.setRefreshing(false);
             }
         });
         graphRequest.executeAsync();

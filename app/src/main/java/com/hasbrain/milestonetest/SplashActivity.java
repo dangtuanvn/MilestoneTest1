@@ -9,6 +9,7 @@ import com.facebook.login.widget.LoginButton;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
@@ -29,6 +30,20 @@ public class SplashActivity extends AppCompatActivity {
         ButterKnife.bind(this);
         btFacebookLogin.setReadPermissions(FACEBOOK_PERMISSIONS);
         callbackManager = CallbackManager.Factory.create();
+        if(AccessToken.getCurrentAccessToken()!=null){
+            //set timer 2 secs
+            new CountDownTimer(2000, 1000) {
+
+                public void onTick(long millisUntilFinished) {
+
+                }
+
+                public void onFinish() {
+                    navigateIntoMainActivity();
+                }
+            }.start();
+
+        }
         btFacebookLogin.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {

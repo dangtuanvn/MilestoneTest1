@@ -4,12 +4,24 @@
     android:layout_height="wrap_content"
     xmlns:tools="http://schemas.android.com/tools">
 
+
+
     <ImageView
         android:id="@+id/iv_facebook_photo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="200dp"
         android:scaleType="centerCrop" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/tv_image_size"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:text="check"
+        android:textColor="#FFFFFF"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,13 +36,13 @@
         <TextView
             android:id="@+id/tv_image_name"
             android:layout_weight="2"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:textColor="@android:color/white"
             tools:text="Image name"/>
         <TextView
             android:id="@+id/tv_image_time"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_weight="1"
             android:textColor="@android:color/white"
             android:textSize="11sp"
