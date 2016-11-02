@@ -31,8 +31,11 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -40,11 +43,15 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
+import java.util.ArrayList;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -54,7 +61,6 @@ import butterknife.ButterKnife;
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
-    private static final String FACEBOOK_PERMISSIONS = "user_friends, user_photos, email";
     public static final String TYPE_UPLOADED = "uploaded";
     public static final String TYPE_TAGGED = "tagged";
     public static final String PUBLISH_ACTIONS_PERMISSION = "publish_actions";
@@ -65,16 +71,23 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     SwipeRefreshLayout swipeRefreshLayout;
     @Bind(R.id.fab)
     FloatingActionButton floatingActionButton;
-    @Bind(R.id.bt_fb_logout)
-    LoginButton btFacebookLogout;
+
+    @Bind(R.id.my_toolbar)
+    Toolbar myToolbar;
+
+//    @Bind(R.id.bt_fb_logout)
+//    LoginButton btFacebookLogout;
     @Bind(R.id.loading_symbol)
     ProgressBar loadingSymbol;
     @Bind(R.id.loading_text)
     TextView loadingText;
 
+
     private Gson gson;
     private CallbackManager callbackManager;
-
+    private LinearLayoutManager mLayoutManager;
+    private String afterpic;
+    private List<FacebookImage> facebookImageContainer = new ArrayList<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,13 +96,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         ButterKnife.bind(this);
         loadingSymbol.setVisibility(View.GONE);
         loadingText.setVisibility(View.GONE);
-        btFacebookLogout.setReadPermissions(FACEBOOK_PERMISSIONS);
-//        btFacebookLogout.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                logout();
-//            }
-//        });
 
         AccessTokenTracker accessTokenTracker = new AccessTokenTracker() {
             @Override
@@ -103,7 +109,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         };
 
         swipeRefreshLayout.setOnRefreshListener(this);
-        rvPhotos.setLayoutManager(new LinearLayoutManager(this));
+        mLayoutManager =new LinearLayoutManager(this);
+        setSupportActionBar(myToolbar);
+        rvPhotos.setLayoutManager(mLayoutManager);
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -116,6 +124,30 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 .registerTypeAdapter(FacebookPhotoResponse.class, new FacebookPhotoResponseDeserializer())
                 .create();
     }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+
+
+            case R.id.action_logout:
+                AccessToken.setCurrentAccessToken(null);
+                return true;
+
+            default:
+                // If we got here, the user's action was not recognized.
+                // Invoke the superclass to handle it.
+                return super.onOptionsItemSelected(item);
+
+        }
+    }
+
 
     @Override
     public void onRefresh() {
@@ -124,12 +156,19 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        loadingSymbol.setVisibility(View.VISIBLE);
+        loadingText.setVisibility(View.VISIBLE);
+
         super.onActivityResult(requestCode, resultCode, data);
         if (REQUEST_IMAGE == requestCode && resultCode == RESULT_OK) {
             Bitmap bitmapData = data.getParcelableExtra("data");
 //            Log.i("IMAGE UPLOAD", "Width = " + bitmapData.getWidth() + " Height = " + bitmapData.getHeight());
 
             if (bitmapData != null) {
+                bitmapData.compress(Bitmap.CompressFormat.JPEG, 80, os);
+                uploadPhotoToFacebook(bitmapData);
+                loadingSymbol.setVisibility(View.GONE);
+                loadingText.setVisibility(View.GONE);
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 bitmapData.compress(Bitmap.CompressFormat.PNG, 100, out);
                 Bitmap decoded = BitmapFactory.decodeStream(new ByteArrayInputStream(out.toByteArray()));
@@ -256,7 +295,13 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 Log.d("hasBrain", "Graph response " + response.toString());
                 FacebookPhotoResponse facebookPhotoResponse = gson
                         .fromJson(response.getRawResponse(), FacebookPhotoResponse.class);
-                displayPhotos(facebookPhotoResponse.getData());
+                if(facebookPhotoResponse.getData()==null){
+                    Toast.makeText(MainActivity.this, "No more data to be load", Toast.LENGTH_LONG).show();
+                }
+                else{
+                    facebookImageContainer.addAll(facebookPhotoResponse.getData());
+                    displayPhotos(facebookImageContainer);
+                    afterpic= facebookPhotoResponse.getAfter();}
                 //remove loading indicator
                 swipeRefreshLayout.setRefreshing(false);
             }
@@ -266,6 +311,27 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void displayPhotos(List<FacebookImage> data) {
         rvPhotos.setAdapter(new FacebookImageAdapter(getLayoutInflater(), Picasso.with(this), data));
+        rvPhotos.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                int pastVisiblesItems, visibleItemCount, totalItemCount;
+
+                if(dy > 0) //check for scroll down
+                {
+                    visibleItemCount = mLayoutManager.getChildCount();
+                    totalItemCount = mLayoutManager.getItemCount();
+                    pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition();
+
+
+                    if ( (visibleItemCount + pastVisiblesItems) >= totalItemCount)
+                    {
+                        getUserPhotos(TYPE_UPLOADED, afterpic);
+                    }
+
+                }
+            }
+        });
     }
 
     @StringDef({TYPE_UPLOADED, TYPE_TAGGED})
@@ -310,7 +376,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         private List<FacebookImage> facebookImages;
 
         public FacebookImageAdapter(LayoutInflater layoutInflater, Picasso picasso,
-                List<FacebookImage> facebookImages) {
+                                    List<FacebookImage> facebookImages) {
             this.layoutInflater = layoutInflater;
             this.picasso = picasso;
             this.facebookImages = facebookImages;
