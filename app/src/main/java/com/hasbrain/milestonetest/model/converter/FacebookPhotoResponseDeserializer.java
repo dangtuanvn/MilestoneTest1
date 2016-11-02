@@ -30,14 +30,20 @@ public class FacebookPhotoResponseDeserializer extends EasyDeserializer<Facebook
             facebookPhotoResponse.setData(
                     context.<List<FacebookImage>>deserialize(jsonObject.getAsJsonArray("data"), listFacebookImageType));
             Log.i("JSON RESPONSE DATA", jsonObject.toString());
-            JsonObject pagingJsonObject = jsonObject.getAsJsonObject("paging");
 
-                JsonElement cursorJsonElement = pagingJsonObject.get("cursors");
-                if (cursorJsonElement != null && cursorJsonElement.isJsonObject()) {
-                    JsonObject cursorsJsonObject = cursorJsonElement.getAsJsonObject();
-                    facebookPhotoResponse.setBefore(getStringValue(cursorsJsonObject.get("before"), null));
-                    facebookPhotoResponse.setAfter(getStringValue(cursorsJsonObject.get("after"), null));
-                }
+
+            JsonObject pagingJsonObject = jsonObject.getAsJsonObject("paging");
+        if(pagingJsonObject != null) {
+            JsonElement cursorJsonElement = pagingJsonObject.get("cursors");
+            if (cursorJsonElement != null && cursorJsonElement.isJsonObject()) {
+                JsonObject cursorsJsonObject = cursorJsonElement.getAsJsonObject();
+                facebookPhotoResponse.setBefore(getStringValue(cursorsJsonObject.get("before"), null));
+                facebookPhotoResponse.setAfter(getStringValue(cursorsJsonObject.get("after"), null));
+            }
+        }
+        else{
+
+        }
 
 
         }

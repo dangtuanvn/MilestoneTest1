@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 openCameraForImage();
             }
         });
-        getUserPhotos(TYPE_UPLOADED, null);
+        getUserPhotos(TYPE_UPLOADED, "MTI0NzQxNzExMjM1Njc4");
         gson = new GsonBuilder()
                 .registerTypeAdapter(FacebookImage.class, new FacebookImageDeserializer())
                 .registerTypeAdapter(FacebookPhotoResponse.class, new FacebookPhotoResponseDeserializer())
@@ -165,6 +165,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 FacebookPhotoResponse facebookPhotoResponse = gson
                         .fromJson(response.getRawResponse(), FacebookPhotoResponse.class);
                 displayPhotos(facebookPhotoResponse.getData());
+                facebookPhotoResponse.getAfter();
                 //remove loading indicator
                 swipeRefreshLayout.setRefreshing(false);
             }
