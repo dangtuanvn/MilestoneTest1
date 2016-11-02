@@ -165,15 +165,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 //            Log.i("IMAGE UPLOAD", "Width = " + bitmapData.getWidth() + " Height = " + bitmapData.getHeight());
 
             if (bitmapData != null) {
-                bitmapData.compress(Bitmap.CompressFormat.JPEG, 80, os);
+
                 uploadPhotoToFacebook(bitmapData);
                 loadingSymbol.setVisibility(View.GONE);
                 loadingText.setVisibility(View.GONE);
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                bitmapData.compress(Bitmap.CompressFormat.PNG, 100, out);
-                Bitmap decoded = BitmapFactory.decodeStream(new ByteArrayInputStream(out.toByteArray()));
-
-                uploadPhotoToFacebook(decoded);
             }
         } else {
             callbackManager.onActivityResult(requestCode, resultCode, data);
