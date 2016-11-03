@@ -1,25 +1,5 @@
 package com.hasbrain.milestonetest;
 
-import com.facebook.AccessTokenTracker;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import com.facebook.AccessToken;
-import com.facebook.CallbackManager;
-import com.facebook.FacebookCallback;
-import com.facebook.FacebookException;
-import com.facebook.GraphRequest;
-import com.facebook.GraphResponse;
-import com.facebook.HttpMethod;
-import com.facebook.login.LoginManager;
-import com.facebook.login.LoginResult;
-import com.hasbrain.milestonetest.model.FacebookImage;
-import com.hasbrain.milestonetest.model.FacebookPhotoResponse;
-import com.hasbrain.milestonetest.model.converter.FacebookImageDeserializer;
-import com.hasbrain.milestonetest.model.converter.FacebookPhotoResponseDeserializer;
-import com.squareup.picasso.Picasso;
-import com.squareup.picasso.Target;
-
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
@@ -27,16 +7,19 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
-import android.graphics.drawable.Drawable;
 import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.annotation.StringDef;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -45,20 +28,39 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.facebook.AccessToken;
+import com.facebook.AccessTokenTracker;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.HttpMethod;
+import com.facebook.login.LoginManager;
+import com.facebook.login.LoginResult;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.hasbrain.milestonetest.model.FacebookImage;
+import com.hasbrain.milestonetest.model.FacebookPhotoResponse;
+import com.hasbrain.milestonetest.model.converter.FacebookImageDeserializer;
+import com.hasbrain.milestonetest.model.converter.FacebookPhotoResponseDeserializer;
+import com.squareup.picasso.Picasso;
 
 import java.io.File;
-import java.util.ArrayList;
-
 import java.io.IOException;
-
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -66,26 +68,26 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 
 
-public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
+/**
+ * Created by sinhhx on 10/25/16.
+ */
+public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefreshListener {
     public static final int MY_REQUEST__CODE = 1;
     public static final String TYPE_UPLOADED = "uploaded";
     public static final String TYPE_TAGGED = "tagged";
     public static final String PUBLISH_ACTIONS_PERMISSION = "publish_actions";
     private static final int REQUEST_IMAGE = 0x1;
-    @Bind(R.id.rv_photos)
+
     RecyclerView rvPhotos;
-    @Bind(R.id.swipe_refresh_layout)
+
     SwipeRefreshLayout swipeRefreshLayout;
-    @Bind(R.id.fab)
+
     FloatingActionButton floatingActionButton;
-    @Bind(R.id.my_toolbar)
+
     Toolbar myToolbar;
 
-    //    @Bind(R.id.bt_fb_logout)
-//    LoginButton btFacebookLogout;
-    @Bind(R.id.loading_symbol)
     ProgressBar loadingSymbol;
-    @Bind(R.id.loading_text)
+
     TextView loadingText;
 
     private File cameraOutput;
@@ -96,12 +98,55 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private List<FacebookImage> facebookImageContainer = new ArrayList<>();
     protected List<FacebookImage> bookmarkList = new ArrayList<>();
 
+    public static final String ARG_PAGE = "ARG_PAGE";
+    String url;
+    String afterpost="";
+    String currentpost="";
+    private View footerView;
+    private ProgressBar spinner;
+    private int mPage;
+
+    public static FragmentTab newInstance(int page) {
+        Bundle args = new Bundle();
+        args.putInt(ARG_PAGE, page);
+        FragmentTab fragment = new FragmentTab();
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        setTitle("Your facebook photos");
-        ButterKnife.bind(this);
+        mPage = getArguments().getInt(ARG_PAGE);
+        setHasOptionsMenu(true);
+
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+
+
+
+        if(mPage==1){
+            url="https://www.reddit.com/r/androiddev/hot.json";
+        }
+        if(mPage==2){
+            url="https://www.reddit.com/r/movies/hot.json";
+        }
+
+        final View view = inflater.inflate(R.layout.activity_main, container, false);
+
+        rvPhotos = (RecyclerView) view.findViewById(R.id.rv_photos);
+        swipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.swipe_refresh_layout);
+       floatingActionButton = (FloatingActionButton) view.findViewById(R.id.fab);
+        myToolbar = (Toolbar) view.findViewById(R.id.my_toolbar);
+
+        loadingSymbol = (ProgressBar) view.findViewById(R.id.loading_symbol);
+        loadingText = (TextView) view.findViewById(R.id.loading_text);
+
+        getActivity().setTitle("Your facebook photos");
+//        ButterKnife.bind(getActivity());
         loadingSymbol.setVisibility(View.GONE);
         loadingText.setVisibility(View.GONE);
 
@@ -117,8 +162,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         };
 
         swipeRefreshLayout.setOnRefreshListener(this);
-        mLayoutManager = new LinearLayoutManager(this);
-        setSupportActionBar(myToolbar);
+        mLayoutManager = new LinearLayoutManager(getActivity());
+
+        ((AppCompatActivity)getActivity()).setSupportActionBar(myToolbar);
         rvPhotos.setLayoutManager(mLayoutManager);
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -131,13 +177,20 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 .registerTypeAdapter(FacebookImage.class, new FacebookImageDeserializer())
                 .registerTypeAdapter(FacebookPhotoResponse.class, new FacebookPhotoResponseDeserializer())
                 .create();
-    }
 
+
+
+        return view;
+
+
+
+
+
+    }
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_main, menu);
+        super.onCreateOptionsMenu(menu,inflater);
     }
 
     @Override
@@ -166,9 +219,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (REQUEST_IMAGE == requestCode && resultCode == RESULT_OK) {
+        if (REQUEST_IMAGE == requestCode && resultCode == getActivity().RESULT_OK) {
 //            Bitmap bitmapData = data.getParcelableExtra("data");
 
             String photoPath = Uri.fromFile(cameraOutput).getPath();
@@ -254,21 +307,21 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
 
     private void openCameraForImage() {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    requestPermissions(new String[]{Manifest.permission.CAMERA}, MY_REQUEST__CODE);
-                }
-                if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_REQUEST__CODE);
-                }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (getActivity().checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.CAMERA}, MY_REQUEST__CODE);
             }
+            if (getActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_REQUEST__CODE);
+            }
+        }
 
-            Intent openCameraForImageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+        Intent openCameraForImageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
 
-            cameraOutput = new File(dir, "Sample_image.jpeg");
-            openCameraForImageIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(cameraOutput));
-            startActivityForResult(openCameraForImageIntent, REQUEST_IMAGE);
+        cameraOutput = new File(dir, "Sample_image.jpeg");
+        openCameraForImageIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(cameraOutput));
+        startActivityForResult(openCameraForImageIntent, REQUEST_IMAGE);
 
     }
 
@@ -312,9 +365,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                             @Override
                             public void onCompleted(GraphResponse response) {
                                 if (response.getError() != null) {
-                                    Toast.makeText(MainActivity.this, "Image upload error " + response.getError().getErrorMessage(), Toast.LENGTH_LONG).show();
+                                    Toast.makeText(getActivity(), "Image upload error " + response.getError().getErrorMessage(), Toast.LENGTH_LONG).show();
                                 } else {
-                                    Toast.makeText(MainActivity.this, "Upload image success", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(getActivity(), "Upload image success", Toast.LENGTH_LONG).show();
                                     getUserPhotos(TYPE_UPLOADED, null);
                                 }
                                 loadingSymbol.setVisibility(View.GONE);
@@ -341,7 +394,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 FacebookPhotoResponse facebookPhotoResponse = gson
                         .fromJson(response.getRawResponse(), FacebookPhotoResponse.class);
                 if (facebookPhotoResponse.getData() == null) {
-                    Toast.makeText(MainActivity.this, "No more data to be load", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), "No more data to be load", Toast.LENGTH_LONG).show();
                 } else {
                     facebookImageContainer.addAll(facebookPhotoResponse.getData());
                     displayPhotos(facebookImageContainer);
@@ -355,7 +408,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     private void displayPhotos(List<FacebookImage> data) {
-        rvPhotos.setAdapter(new FacebookImageAdapter(getLayoutInflater(), Picasso.with(this), data));
+        rvPhotos.setAdapter(new FacebookImageAdapter(getActivity().getLayoutInflater(), Picasso.with(getActivity()), data));
         rvPhotos.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
@@ -379,10 +432,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     private void goToSplashActivity() {
-        Intent startSplashIntent = new Intent(MainActivity.this, SplashActivity.class);
+        Intent startSplashIntent = new Intent(getActivity(), SplashActivity.class);
         startSplashIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(startSplashIntent);
-        finish();
+        getActivity().finish();
     }
 
     @StringDef({TYPE_UPLOADED, TYPE_TAGGED})
@@ -411,9 +464,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         public void bind(final FacebookImage facebookImage) {
             picasso.load(facebookImage.getImageUrl())
-                .resize(1280, 960)
-                .centerCrop()
-                .into(ivFacebookPhoto);
+                    .resize(1280, 960)
+                    .centerCrop()
+                    .into(ivFacebookPhoto);
 
             tvImageSize.setText("photo height = " + ivFacebookPhoto.getHeight() + ", photo width = " + ivFacebookPhoto.getWidth());;
 
@@ -469,4 +522,36 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             return facebookImages != null ? facebookImages.size() : 0;
         }
     }
+
+
+
+
+
+}
+class SampleFragmentPagerAdapter extends FragmentPagerAdapter {
+    final int PAGE_COUNT = 2;
+    private String tabTitles[] = new String[] { "STANDARD", "BOOKMARK"};
+    private Context context;
+
+    public SampleFragmentPagerAdapter(FragmentManager fm, Context context) {
+        super(fm);
+        this.context = context;
+    }
+
+    @Override
+    public int getCount() {
+        return PAGE_COUNT;
+    }
+
+    @Override
+    public Fragment getItem(int position) {
+        return FragmentTab.newInstance(position + 1);
+    }
+
+    @Override
+    public CharSequence getPageTitle(int position) {
+        // Generate title based on item position
+        return tabTitles[position];
+    }
+
 }

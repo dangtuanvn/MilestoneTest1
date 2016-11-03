@@ -71,7 +71,8 @@ public class SplashActivity extends AppCompatActivity {
     }
 
     private void navigateIntoMainActivity() {
-        Intent startMainActivityIntent = new Intent(SplashActivity.this, MainActivity.class);
+//        Intent startMainActivityIntent = new Intent(SplashActivity.this, MainActivity.class);
+        Intent startMainActivityIntent = new Intent(SplashActivity.this, TabViewActivity.class);
         startActivity(startMainActivityIntent);
         finish();
     }
