@@ -47,9 +47,10 @@
     </LinearLayout>
 
     <ImageView
+        android:id="@+id/bookmark"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/ic_bookmark_star_unselected"
-        android:layout_gravity="end"/>
-
+        android:layout_gravity="end"
+        android:clickable="true"/>
 </FrameLayout>
