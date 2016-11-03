@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -155,7 +156,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     @Override
     public void onRefresh() {
+        facebookImageContainer.clear();
         getUserPhotos(TYPE_UPLOADED, null);
+
     }
 
     @Override
@@ -371,7 +374,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             //set image view
             tvImageSize.setText("photo height = "+ivFacebookPhoto.getHeight()+", photo width = "+ivFacebookPhoto.getWidth());
         }
+
     }
+
 
     private static class FacebookImageAdapter extends RecyclerView.Adapter<FacebookImageVH> {
 
