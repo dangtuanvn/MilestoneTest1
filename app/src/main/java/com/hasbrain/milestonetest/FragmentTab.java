@@ -59,7 +59,11 @@ import com.hasbrain.milestonetest.model.converter.FacebookPhotoResponseDeseriali
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -96,8 +100,8 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
     private LinearLayoutManager mLayoutManager;
     private String afterpic;
     private List<FacebookImage> facebookImageContainer = new ArrayList<>();
-    protected List<FacebookImage> bookmarkList = new ArrayList<>();
-
+    protected static List<FacebookImage> bookmarkList;
+    private boolean first_start = true;
     public static final String ARG_PAGE = "ARG_PAGE";
     String url;
 
@@ -122,11 +126,6 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
-
-
-
-
         final View view = inflater.inflate(R.layout.activity_main, container, false);
 
         rvPhotos = (RecyclerView) view.findViewById(R.id.rv_photos);
@@ -141,6 +140,11 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
 //        ButterKnife.bind(getActivity());
         loadingSymbol.setVisibility(View.GONE);
         loadingText.setVisibility(View.GONE);
+
+        if(first_start){
+            first_start = false;
+            readDataFromExternalStorage();
+        }
 
         AccessTokenTracker accessTokenTracker = new AccessTokenTracker() {
             @Override
@@ -179,12 +183,19 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
 
 
         return view;
-
-
-
-
-
     }
+
+//    @Override
+//    public void onResume(){
+//        super.onResume();
+//        if(mPage==1){
+//            getUserPhotos(TYPE_UPLOADED, null);
+//        }
+//        if(mPage==2){
+//            displayPhotos(bookmarkList);
+//        }
+//    }
+
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_main, menu);
@@ -218,6 +229,7 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
         }
         if(mPage==2){
             displayPhotos(bookmarkList);
+            swipeRefreshLayout.setRefreshing(false);
         }
 
     }
@@ -400,7 +412,21 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
                 if (facebookPhotoResponse.getData() == null) {
                     Toast.makeText(getActivity(), "No more data to be load", Toast.LENGTH_LONG).show();
                 } else {
-                    facebookImageContainer.addAll(facebookPhotoResponse.getData());
+//                    facebookImageContainer.addAll(facebookPhotoResponse.getData());
+                    for(int i = 0; i < facebookPhotoResponse.getData().size(); i++){
+                        FacebookImage image = facebookPhotoResponse.getData().get(i);
+//                        Log.i("IMAGE ID", "" + image.getId());
+//                        Log.i("IMAGE NAME", "" + image.getName());
+//                        Log.i("IMAGE URL", "" + image.getImageUrl());
+//                        Log.i("IMAGE THUMBNAIL URL", "" + image.getThumbnailUrl());
+                        for(int j = 0; j < bookmarkList.size(); j++){
+                            if(image.getId().equals(bookmarkList.get(j).getId())){
+                                image.setBookmark(true);
+                                break;
+                            }
+                        }
+                        facebookImageContainer.add(image);
+                    }
                     displayPhotos(facebookImageContainer);
                     afterpic = facebookPhotoResponse.getAfter();
                 }
@@ -414,26 +440,29 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
     private void displayPhotos(List<FacebookImage> data) {
         rvPhotos.setAdapter(new FacebookImageAdapter(getActivity().getLayoutInflater(), Picasso.with(getActivity()), data));
         rvPhotos.setAdapter(new FacebookImageAdapter(getActivity().getLayoutInflater(), Picasso.with(getActivity()), data));
-        rvPhotos.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
-                int pastVisiblesItems, visibleItemCount, totalItemCount;
 
-                if (dy > 0) //check for scroll down
-                {
-                    visibleItemCount = mLayoutManager.getChildCount();
-                    totalItemCount = mLayoutManager.getItemCount();
-                    pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition();
+        if(mPage == 1) {
+            rvPhotos.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
+                    int pastVisiblesItems, visibleItemCount, totalItemCount;
+
+                    if (dy > 0) //check for scroll down
+                    {
+                        visibleItemCount = mLayoutManager.getChildCount();
+                        totalItemCount = mLayoutManager.getItemCount();
+                        pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition();
 
 
-                    if ((visibleItemCount + pastVisiblesItems) >= totalItemCount) {
-                        getUserPhotos(TYPE_UPLOADED, afterpic);
+                        if ((visibleItemCount + pastVisiblesItems) >= totalItemCount) {
+                            getUserPhotos(TYPE_UPLOADED, afterpic);
+                        }
+
                     }
-
                 }
-            }
-        });
+            });
+        }
     }
 
     private void goToSplashActivity() {
@@ -478,28 +507,91 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
 
             tvImageName.setText(facebookImage.getName());
             tvImageTime.setText(facebookImage.getCreatedTime());
-            //set image view
 
-
-
+            if(facebookImage.isBookmark()){
+                bookmark.setImageResource(R.drawable.ic_bookmark_star_selected);
+                bookmark.invalidate();
+            }
+            else{
+                bookmark.setImageResource(R.drawable.ic_bookmark_star_unselected);
+                bookmark.invalidate();
+            }
 
             bookmark.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    action_bookmark();
+                    action_bookmark(facebookImage);
                 }
             });
         }
 
-        public void action_bookmark(){
-
+        public void action_bookmark(FacebookImage facebookImage){
+            if(facebookImage.isBookmark()){
+                facebookImage.setBookmark(false);
+                for(int i = 0; i < bookmarkList.size(); i++){
+                    if(bookmarkList.get(i).getId().equals(facebookImage.getId())){
+                        bookmarkList.remove(i);
+                        break;
+                    }
+                }
+                bookmark.setImageResource(R.drawable.ic_bookmark_star_unselected);
+                bookmark.invalidate();
+            }
+            else {
+                facebookImage.setBookmark(true);
+                bookmarkList.add(facebookImage);
+                bookmark.setImageResource(R.drawable.ic_bookmark_star_selected);
+                bookmark.invalidate();
+            }
+            saveDataToExternalStorage();
         }
-
     }
 
+    public static void saveDataToExternalStorage(){
+        // get the path to sdcard
+        File sdcard = Environment.getExternalStorageDirectory();
+        // to this path add a new directory path
+        File dir = new File(sdcard.getAbsolutePath() + "/bookmark/");
+        // create this directory if not already created
+        if(!dir.exists()) {
+            dir.mkdir();
+        }
+        // create the file in which we will write the contents
+
+        try {
+            FileOutputStream file = new FileOutputStream(new File(dir, "bookmark_list.txt"));
+            ObjectOutputStream oos = new ObjectOutputStream(file);
+            oos.writeObject(bookmarkList);
+            oos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.i("WRITE OUPUT","File didn't write");
+        }
+    }
+
+    public void readDataFromExternalStorage(){
+        // get the path to sdcard
+        File sdcard = Environment.getExternalStorageDirectory();
+        // to this path add a new directory path
+        File dir = new File(sdcard.getAbsolutePath() + "/bookmark/");
+        // create this directory if not already created
+        dir.mkdir();
+        // create the file in which we will write the contents
+
+        FileInputStream fis;
+        try {
+            fis = new FileInputStream(new File(dir, "bookmark_list.txt"));
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            bookmarkList = (ArrayList<FacebookImage>) ois.readObject();
+            ois.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            bookmarkList = new ArrayList<>();
+        }
+    }
 
     private static class FacebookImageAdapter extends RecyclerView.Adapter<FacebookImageVH> {
-
         private LayoutInflater layoutInflater;
         private Picasso picasso;
         private List<FacebookImage> facebookImages;
@@ -527,14 +619,9 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
             return facebookImages != null ? facebookImages.size() : 0;
         }
     }
-
-
-
-
-
 }
 class SampleFragmentPagerAdapter extends FragmentPagerAdapter {
-    final int PAGE_COUNT = 2;
+    private final int PAGE_COUNT = 2;
     private String tabTitles[] = new String[] { "STANDARD", "BOOKMARK"};
     private Context context;
 

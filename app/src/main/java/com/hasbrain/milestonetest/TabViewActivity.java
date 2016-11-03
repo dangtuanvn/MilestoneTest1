@@ -22,6 +22,6 @@ public class TabViewActivity  extends AppCompatActivity {
         // Give the TabLayout the ViewPager
         TabLayout tabLayout = (TabLayout) findViewById(R.id.sliding_tabs);
         tabLayout.setupWithViewPager(viewPager);
-    }
 
+    }
 }
