@@ -32,4 +32,25 @@ Unfortunately, the app was poorly written and there are some bugs/features need 
 - You can use your own Facebook account or use two test accounts provided below:
     * first_hyhzefz_hasbrain@tfbnw.net/h@sBrain
     * second_gwuhrpt_hasbrain@tfbnw.net/h@sBrain
+    
+1/ (Sinh Ha) check token exist AccessToken.getCurrentAccessToken()!=null, add 2 seconds timer before execute 
+
+2/ (Sinh Ha)   swipeRefreshLayout.setRefreshing(false); after getuserphoto() complete
+
+3/ (Tuan Nguyen) In FacebookImageDeserializer, change int i = 0 in function ChooseImageFromArray()
+
+4/ (Sinh Ha) Change width of image_name and image_time to 0dp so the weight can take effect
+
+5/ (Sinh Ha) add textview to activity_main.xml set value for textview in  public void bind(FacebookImage facebookImage)(bugs occationally width and heigh =0)
+
+6/ (Sinh Ha) Add on scroll listener to recycle view so when it scroll to the last items  it will request more data by passing the after parameter to the request. When no data to be add, display a toast message. 
+
+7/ (Tuan Nguyen) create AccessTokenTracker to listen when the token is changed and go back to SplashActivity
+(Sinh) Create toolbar button to set token to null.
+
+8/ (Tuan Nguyen) Add a ProgressBar and TextView to show loading indicator in the middle of the screen. Set them to GONE. When uploading an image, set them to VISIBLE. After uploading completed, set them to GONE again.
+   Image quality: get EXTRA_OUTPUT and save it into a file, then decode that file to get the high quality bitmap and upload to Facebook.
+   
+10/ (Sinh Ha): In Android 6.0 just declare the permission in manifest will result in permission denied, have to check for permission programmatically with checkSelfPermission(Manifest.permission.CAMERA if no permission prompt request, requestPermissions(new String[]{Manifest.permission.CAMERA},
+                    MY_REQUEST__CODE);
 

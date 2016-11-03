@@ -156,7 +156,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     @Override
     public void onRefresh() {
+        facebookImageContainer.clear();
         getUserPhotos(TYPE_UPLOADED, null);
+
     }
 
     @Override
@@ -423,7 +425,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         public void action_bookmark(){
 
         }
+
     }
+
 
     private static class FacebookImageAdapter extends RecyclerView.Adapter<FacebookImageVH> {
 
