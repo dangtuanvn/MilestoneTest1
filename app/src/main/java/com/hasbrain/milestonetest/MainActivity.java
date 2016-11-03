@@ -398,7 +398,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         TextView tvImageSize;
         private Picasso picasso;
         @Bind(R.id.bookmark)
-        private ImageView bookmark;
+        ImageView bookmark;
 
         public FacebookImageVH(Picasso picasso, View itemView) {
             super(itemView);
