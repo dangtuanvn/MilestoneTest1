@@ -55,6 +55,10 @@ import android.widget.Toast;
 
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
 import java.io.IOException;
@@ -94,13 +98,20 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private LinearLayoutManager mLayoutManager;
     private String afterpic;
     private List<FacebookImage> facebookImageContainer = new ArrayList<>();
-    protected List<FacebookImage> bookmarkList = new ArrayList<>();
+    protected static List<FacebookImage> bookmarkList;
+    private boolean first_start = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setTitle("Your facebook photos");
+
+        if(first_start){
+            first_start = false;
+            readDataFromExternalStorage();
+        }
+
         ButterKnife.bind(this);
         loadingSymbol.setVisibility(View.GONE);
         loadingText.setVisibility(View.GONE);
@@ -343,7 +354,23 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 if (facebookPhotoResponse.getData() == null) {
                     Toast.makeText(MainActivity.this, "No more data to be load", Toast.LENGTH_LONG).show();
                 } else {
-                    facebookImageContainer.addAll(facebookPhotoResponse.getData());
+//                    facebookImageContainer.addAll(facebookPhotoResponse.getData());
+                    for(int i = 0; i < facebookPhotoResponse.getData().size(); i++){
+                        FacebookImage image = facebookPhotoResponse.getData().get(i);
+                        Log.i("IMAGE ID", "" + image.getId());
+                        Log.i("IMAGE NAME", "" + image.getName());
+                        Log.i("IMAGE URL", "" + image.getImageUrl());
+                        Log.i("IMAGE THUMBNAIL URL", "" + image.getThumbnailUrl());
+                        for(int j = 0; j < bookmarkList.size(); j++){
+                            if(image.getId().equals(bookmarkList.get(j).getId())){
+                                image.setBookmark(true);
+                                break;
+                            }
+                        }
+                        facebookImageContainer.add(image);
+                    }
+
+
                     displayPhotos(facebookImageContainer);
                     afterpic = facebookPhotoResponse.getAfter();
                 }
@@ -368,7 +395,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     totalItemCount = mLayoutManager.getItemCount();
                     pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition();
 
-
                     if ((visibleItemCount + pastVisiblesItems) >= totalItemCount) {
                         getUserPhotos(TYPE_UPLOADED, afterpic);
                     }
@@ -383,6 +409,50 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         startSplashIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(startSplashIntent);
         finish();
+    }
+
+    public static void saveDataToExternalStorage(){
+        // get the path to sdcard
+        File sdcard = Environment.getExternalStorageDirectory();
+        // to this path add a new directory path
+        File dir = new File(sdcard.getAbsolutePath() + "/bookmark/");
+        // create this directory if not already created
+        if(!dir.exists()) {
+            dir.mkdir();
+        }
+        // create the file in which we will write the contents
+
+        try {
+            FileOutputStream file = new FileOutputStream(new File(dir, "bookmark_list.txt"));
+            ObjectOutputStream oos = new ObjectOutputStream(file);
+            oos.writeObject(bookmarkList);
+            oos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.i("WRITE OUPUT","File didn't write");
+        }
+    }
+
+    public void readDataFromExternalStorage(){
+        // get the path to sdcard
+        File sdcard = Environment.getExternalStorageDirectory();
+        // to this path add a new directory path
+        File dir = new File(sdcard.getAbsolutePath() + "/bookmark/");
+        // create this directory if not already created
+        dir.mkdir();
+        // create the file in which we will write the contents
+
+        FileInputStream fis;
+        try {
+            fis = new FileInputStream(new File(dir, "bookmark_list.txt"));
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            bookmarkList = (ArrayList<FacebookImage>) ois.readObject();
+            ois.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            bookmarkList = new ArrayList<>();
+        }
     }
 
     @StringDef({TYPE_UPLOADED, TYPE_TAGGED})
@@ -411,13 +481,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         public void bind(final FacebookImage facebookImage) {
             picasso.load(facebookImage.getImageUrl())
-                .resize(1280, 960)
-                .centerCrop()
-                .into(ivFacebookPhoto);
-
-            tvImageSize.setText("photo height = " + ivFacebookPhoto.getHeight() + ", photo width = " + ivFacebookPhoto.getWidth());;
-
-
+                    .resize(1280, 960)
+                    .centerCrop()
+                    .into(ivFacebookPhoto);
             tvImageName.setText(facebookImage.getName());
             tvImageTime.setText(facebookImage.getCreatedTime());
             //set image view
@@ -428,20 +494,36 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             bookmark.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    action_bookmark();
+                    action_bookmark(facebookImage);
                 }
             });
         }
 
-        public void action_bookmark(){
+        public void action_bookmark(FacebookImage facebookImage){
+            if(facebookImage.isBookmark()){
+                facebookImage.setBookmark(false);
+                for(int i = 0; i < bookmarkList.size(); i++){
+                    if(bookmarkList.get(i).getId().equals(facebookImage.getId())){
+                        bookmarkList.remove(i);
+                        break;
+                    }
+                }
+                bookmark.setImageResource(R.drawable.ic_bookmark_star_unselected);
+                bookmark.invalidate();
 
+            }
+            else {
+                facebookImage.setBookmark(true);
+                bookmarkList.add(facebookImage);
+                bookmark.setImageResource(R.drawable.ic_bookmark_star_selected);
+                bookmark.invalidate();
+
+            }
+            saveDataToExternalStorage();
         }
-
     }
 
-
     private static class FacebookImageAdapter extends RecyclerView.Adapter<FacebookImageVH> {
-
         private LayoutInflater layoutInflater;
         private Picasso picasso;
         private List<FacebookImage> facebookImages;
@@ -462,6 +544,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         @Override
         public void onBindViewHolder(FacebookImageVH holder, int position) {
             holder.bind(facebookImages.get(position));
+            holder.tvImageSize.setText("photo height = " + holder.ivFacebookPhoto.getHeight() + ", photo width = " + holder.ivFacebookPhoto.getWidth());
         }
 
         @Override
