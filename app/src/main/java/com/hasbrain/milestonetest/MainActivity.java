@@ -1,7 +1,6 @@
 package com.hasbrain.milestonetest;
 
 import com.facebook.AccessTokenTracker;
-import com.facebook.login.widget.LoginButton;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -21,11 +20,12 @@ import com.hasbrain.milestonetest.model.converter.FacebookPhotoResponseDeseriali
 import com.squareup.picasso.Picasso;
 
 import android.Manifest;
-import android.annotation.TargetApi;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.os.Build;
 import android.net.Uri;
 import android.os.Bundle;
@@ -53,11 +53,7 @@ import android.widget.Toast;
 import java.io.File;
 import java.util.ArrayList;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 
 import java.util.Collections;
 import java.util.List;
@@ -67,7 +63,7 @@ import butterknife.ButterKnife;
 
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
-    public static final int MY_REQUEST__CODE=1;
+    public static final int MY_REQUEST__CODE = 1;
     public static final String TYPE_UPLOADED = "uploaded";
     public static final String TYPE_TAGGED = "tagged";
     public static final String PUBLISH_ACTIONS_PERMISSION = "publish_actions";
@@ -78,23 +74,24 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     SwipeRefreshLayout swipeRefreshLayout;
     @Bind(R.id.fab)
     FloatingActionButton floatingActionButton;
-
     @Bind(R.id.my_toolbar)
     Toolbar myToolbar;
 
-//    @Bind(R.id.bt_fb_logout)
+    //    @Bind(R.id.bt_fb_logout)
 //    LoginButton btFacebookLogout;
     @Bind(R.id.loading_symbol)
     ProgressBar loadingSymbol;
     @Bind(R.id.loading_text)
     TextView loadingText;
 
-
+    private File cameraOutput;
     private Gson gson;
     private CallbackManager callbackManager;
     private LinearLayoutManager mLayoutManager;
     private String afterpic;
     private List<FacebookImage> facebookImageContainer = new ArrayList<>();
+    protected List<FacebookImage> bookmarkList = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -109,14 +106,14 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             protected void onCurrentAccessTokenChanged(
                     AccessToken oldAccessToken,
                     AccessToken currentAccessToken) {
-                if (currentAccessToken == null){
-                    logout();
+                if (currentAccessToken == null) {
+                    goToSplashActivity();
                 }
             }
         };
 
         swipeRefreshLayout.setOnRefreshListener(this);
-        mLayoutManager =new LinearLayoutManager(this);
+        mLayoutManager = new LinearLayoutManager(this);
         setSupportActionBar(myToolbar);
         rvPhotos.setLayoutManager(mLayoutManager);
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
@@ -131,6 +128,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 .registerTypeAdapter(FacebookPhotoResponse.class, new FacebookPhotoResponseDeserializer())
                 .create();
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -162,100 +160,112 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {      
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (REQUEST_IMAGE == requestCode && resultCode == RESULT_OK) {
 //            Bitmap bitmapData = data.getParcelableExtra("data");
 
             String photoPath = Uri.fromFile(cameraOutput).getPath();
-             int targetW = 1280, targetH = 960;
+            int targetW = 1280, targetH = 960;
 
-                        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-                        bmOptions.inJustDecodeBounds = true;
-                        BitmapFactory.decodeFile(photoPath, bmOptions);
-                        int photoW = bmOptions.outWidth;
-                        int photoH = bmOptions.outHeight;
+            BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+            bmOptions.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(photoPath, bmOptions);
+            int photoW = bmOptions.outWidth;
+            int photoH = bmOptions.outHeight;
 
-                        // Determine how much to scale down the image
-                        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+            // Determine how much to scale down the image
+            int scaleFactor = Math.min(photoW / targetW, photoH / targetH);
 
-                        // Decode the image file into a Bitmap sized to fill the View
-                        bmOptions.inJustDecodeBounds = false;
-                        bmOptions.inSampleSize = scaleFactor;
-                        bmOptions.inPurgeable = true;
+            // Decode the image file into a Bitmap sized to fill the View
+            bmOptions.inJustDecodeBounds = false;
+            bmOptions.inSampleSize = scaleFactor;
+            bmOptions.inPurgeable = true;
 
-                Bitmap bitmapData = BitmapFactory.decodeFile(photoPath, bmOptions);
+            Bitmap bitmapData = BitmapFactory.decodeFile(photoPath, bmOptions);
+
+            // Detect image's orientation
+            ExifInterface exif = null;
+            try {
+                exif = new ExifInterface(photoPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+
+            // Rotate the image
+            bitmapData = rotateBitmap(bitmapData, orientation);
             if (bitmapData != null) {
-                uploadPhotoToFacebook(bitmapData);          
+                uploadPhotoToFacebook(bitmapData);
             }
         } else {
-           // callbackManager.onActivityResult(requestCode, resultCode, data);
+            // callbackManager.onActivityResult(requestCode, resultCode, data);
         }
     }
 
-//    public Bitmap createAvatar(Bitmap bitmapData){
-//        ByteArrayOutputStream out = new ByteArrayOutputStream();
-//        bitmapData.compress(Bitmap.CompressFormat.PNG, 100, out);
-//
-//        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-//        bmOptions.inJustDecodeBounds = true;
-//        BitmapFactory.decodeSt(photoPath, bmOptions);
-//        int photoW = bmOptions.outWidth;
-//        int photoH = bmOptions.outHeight;
-//
-//        // Log.i("Measures", "W " + photoW + " H " + photoH + " targetW " + targetW + " targetH " + targetH);
-//        // Determine how much to scale down the image
-//        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
-//
-//        // Decode the image file into a Bitmap sized to fill the View
-//        bmOptions.inJustDecodeBounds = false;
-//        bmOptions.inSampleSize = scaleFactor;
-//        bmOptions.inPurgeable = true;
-//
-//        Bitmap bitmap = BitmapFactory.decodeFile(photoPath, bmOptions);
-//        return bitmap;
-//    }
+    public static Bitmap rotateBitmap(Bitmap bitmap, int orientation) {
+        Matrix matrix = new Matrix();
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_NORMAL:
+                return bitmap;
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
+                matrix.setScale(-1, 1);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                matrix.setRotate(180);
+                break;
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
+                matrix.setRotate(180);
+                matrix.postScale(-1, 1);
+                break;
+            case ExifInterface.ORIENTATION_TRANSPOSE:
+                matrix.setRotate(90);
+                matrix.postScale(-1, 1);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                matrix.setRotate(90);
+                break;
+            case ExifInterface.ORIENTATION_TRANSVERSE:
+                matrix.setRotate(-90);
+                matrix.postScale(-1, 1);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                matrix.setRotate(-90);
+                break;
+            default:
+                return bitmap;
+        }
+
+        try {
+            Bitmap bmRotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+            bitmap.recycle();
+            return bmRotated;
+        } catch (OutOfMemoryError e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
 
-//    public Bitmap createUploadPhoto(Bitmap bitmapData){
-//        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-//        bmOptions.inJustDecodeBounds = true;
-//        BitmapFactory.decodefi(bitmapData, bmOptions);
-//        int photoW = bmOptions.outWidth;
-//        int photoH = bmOptions.outHeight;
-//
-//        // Log.i("Measures", "W " + photoW + " H " + photoH + " targetW " + targetW + " targetH " + targetH);
-//        // Determine how much to scale down the image
-//        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
-//
-//        // Decode the image file into a Bitmap sized to fill the View
-//        bmOptions.inJustDecodeBounds = false;
-//        bmOptions.inSampleSize = scaleFactor;
-//        bmOptions.inPurgeable = true;
-//
-//        Bitmap bitmap = BitmapFactory.decodeFile(photoPath, bmOptions);
-//        return bitmap;
-//    }
-
-    @TargetApi(Build.VERSION_CODES.M)
-    private File cameraOutput;
     private void openCameraForImage() {
-        if (checkSelfPermission(Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.CAMERA}, MY_REQUEST__CODE);
+                }
+                if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_REQUEST__CODE);
+                }
+            }
 
-            requestPermissions(new String[]{Manifest.permission.CAMERA},
-                    MY_REQUEST__CODE);
-        }else{
-        Intent openCameraForImageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+            Intent openCameraForImageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
 
-        cameraOutput = new File(dir, "Sample_image.jpeg");
-        openCameraForImageIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(cameraOutput));
-        startActivityForResult(openCameraForImageIntent, REQUEST_IMAGE);
-    }}
-
+            cameraOutput = new File(dir, "Sample_image.jpeg");
+            openCameraForImageIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(cameraOutput));
+            startActivityForResult(openCameraForImageIntent, REQUEST_IMAGE);
 
     }
+
 
     private void uploadPhotoToFacebook(final Bitmap imageBitmap) {
         AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
@@ -309,8 +319,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
 
-
-
     private void getUserPhotos(@PHOTO_TYPE String photoType, final String after) {
         AccessToken accessToken = AccessToken.getCurrentAccessToken();
         Bundle parameters = new Bundle();
@@ -326,13 +334,13 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 Log.d("hasBrain", "Graph response " + response.toString());
                 FacebookPhotoResponse facebookPhotoResponse = gson
                         .fromJson(response.getRawResponse(), FacebookPhotoResponse.class);
-                if(facebookPhotoResponse.getData()==null){
+                if (facebookPhotoResponse.getData() == null) {
                     Toast.makeText(MainActivity.this, "No more data to be load", Toast.LENGTH_LONG).show();
-                }
-                else{
+                } else {
                     facebookImageContainer.addAll(facebookPhotoResponse.getData());
                     displayPhotos(facebookImageContainer);
-                    afterpic= facebookPhotoResponse.getAfter();}
+                    afterpic = facebookPhotoResponse.getAfter();
+                }
                 //remove loading indicator
                 swipeRefreshLayout.setRefreshing(false);
             }
@@ -348,15 +356,14 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 super.onScrolled(recyclerView, dx, dy);
                 int pastVisiblesItems, visibleItemCount, totalItemCount;
 
-                if(dy > 0) //check for scroll down
+                if (dy > 0) //check for scroll down
                 {
                     visibleItemCount = mLayoutManager.getChildCount();
                     totalItemCount = mLayoutManager.getItemCount();
                     pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition();
 
 
-                    if ( (visibleItemCount + pastVisiblesItems) >= totalItemCount)
-                    {
+                    if ((visibleItemCount + pastVisiblesItems) >= totalItemCount) {
                         getUserPhotos(TYPE_UPLOADED, afterpic);
                     }
 
@@ -365,13 +372,19 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         });
     }
 
+    private void goToSplashActivity() {
+        Intent startSplashIntent = new Intent(MainActivity.this, SplashActivity.class);
+        startSplashIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(startSplashIntent);
+        finish();
+    }
+
     @StringDef({TYPE_UPLOADED, TYPE_TAGGED})
     public @interface PHOTO_TYPE {
 
     }
 
     static class FacebookImageVH extends RecyclerView.ViewHolder {
-
         @Bind(R.id.iv_facebook_photo)
         ImageView ivFacebookPhoto;
         @Bind(R.id.tv_image_name)
@@ -381,6 +394,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         @Bind(R.id.tv_image_size)
         TextView tvImageSize;
         private Picasso picasso;
+        @Bind(R.id.bookmark)
+        private ImageView bookmark;
 
         public FacebookImageVH(Picasso picasso, View itemView) {
             super(itemView);
@@ -396,7 +411,17 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             tvImageName.setText(facebookImage.getName());
             tvImageTime.setText(facebookImage.getCreatedTime());
             //set image view
-            tvImageSize.setText("photo height = "+ivFacebookPhoto.getHeight()+", photo width = "+ivFacebookPhoto.getWidth());
+            tvImageSize.setText("photo height = " + ivFacebookPhoto.getHeight() + ", photo width = " + ivFacebookPhoto.getWidth());
+            bookmark.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    action_bookmark();
+                }
+            });
+        }
+
+        public void action_bookmark(){
+
         }
     }
 
@@ -428,11 +453,5 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         public int getItemCount() {
             return facebookImages != null ? facebookImages.size() : 0;
         }
-    }
-
-    private void logout(){
-        Intent startSplashIntent = new Intent(MainActivity.this, SplashActivity.class);
-        startActivity(startSplashIntent);
-        finish();
     }
 }
