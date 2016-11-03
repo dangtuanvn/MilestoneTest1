@@ -23,7 +23,9 @@ import com.squareup.picasso.Picasso;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.StringDef;
 import android.support.design.widget.FloatingActionButton;
@@ -44,6 +46,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import java.io.File;
 import java.util.ArrayList;
 
 import java.io.ByteArrayInputStream;
@@ -158,9 +161,26 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {      
         super.onActivityResult(requestCode, resultCode, data);
         if (REQUEST_IMAGE == requestCode && resultCode == RESULT_OK) {
-            Bitmap bitmapData = data.getParcelableExtra("data");
-//            Log.i("IMAGE UPLOAD", "Width = " + bitmapData.getWidth() + " Height = " + bitmapData.getHeight());
+//            Bitmap bitmapData = data.getParcelableExtra("data");
 
+            String photoPath = Uri.fromFile(cameraOutput).getPath();
+             int targetW = 1280, targetH = 960;
+
+                        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+                        bmOptions.inJustDecodeBounds = true;
+                        BitmapFactory.decodeFile(photoPath, bmOptions);
+                        int photoW = bmOptions.outWidth;
+                        int photoH = bmOptions.outHeight;
+
+                        // Determine how much to scale down the image
+                        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+
+                        // Decode the image file into a Bitmap sized to fill the View
+                        bmOptions.inJustDecodeBounds = false;
+                        bmOptions.inSampleSize = scaleFactor;
+                        bmOptions.inPurgeable = true;
+
+                Bitmap bitmapData = BitmapFactory.decodeFile(photoPath, bmOptions);
             if (bitmapData != null) {
                 uploadPhotoToFacebook(bitmapData);          
             }
@@ -213,9 +233,15 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 //        return bitmap;
 //    }
 
+    private File cameraOutput;
     private void openCameraForImage() {
         Intent openCameraForImageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+
+        cameraOutput = new File(dir, "Sample_image.jpeg");
+        openCameraForImageIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(cameraOutput));
         startActivityForResult(openCameraForImageIntent, REQUEST_IMAGE);
+
     }
 
     private void uploadPhotoToFacebook(final Bitmap imageBitmap) {
