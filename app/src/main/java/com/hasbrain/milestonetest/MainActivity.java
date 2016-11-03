@@ -20,9 +20,13 @@ import com.hasbrain.milestonetest.model.converter.FacebookImageDeserializer;
 import com.hasbrain.milestonetest.model.converter.FacebookPhotoResponseDeserializer;
 import com.squareup.picasso.Picasso;
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.StringDef;
@@ -60,7 +64,7 @@ import butterknife.ButterKnife;
 
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
-
+    public static final int MY_REQUEST__CODE=1;
     public static final String TYPE_UPLOADED = "uploaded";
     public static final String TYPE_TAGGED = "tagged";
     public static final String PUBLISH_ACTIONS_PERMISSION = "publish_actions";
@@ -165,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 uploadPhotoToFacebook(bitmapData);          
             }
         } else {
-            callbackManager.onActivityResult(requestCode, resultCode, data);
+           // callbackManager.onActivityResult(requestCode, resultCode, data);
         }
     }
 
@@ -213,10 +217,18 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 //        return bitmap;
 //    }
 
+    @TargetApi(Build.VERSION_CODES.M)
     private void openCameraForImage() {
+        if (checkSelfPermission(Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            requestPermissions(new String[]{Manifest.permission.CAMERA},
+                    MY_REQUEST__CODE);
+        }else{
         Intent openCameraForImageIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         startActivityForResult(openCameraForImageIntent, REQUEST_IMAGE);
-    }
+    }}
+
 
     private void uploadPhotoToFacebook(final Bitmap imageBitmap) {
         AccessToken currentAccessToken = AccessToken.getCurrentAccessToken();
@@ -268,6 +280,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                         });
         graphRequest.executeAsync();
     }
+
+
+
 
     private void getUserPhotos(@PHOTO_TYPE String photoType, final String after) {
         AccessToken accessToken = AccessToken.getCurrentAccessToken();
