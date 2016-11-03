@@ -357,10 +357,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 //                    facebookImageContainer.addAll(facebookPhotoResponse.getData());
                     for(int i = 0; i < facebookPhotoResponse.getData().size(); i++){
                         FacebookImage image = facebookPhotoResponse.getData().get(i);
-                        Log.i("IMAGE ID", "" + image.getId());
-                        Log.i("IMAGE NAME", "" + image.getName());
-                        Log.i("IMAGE URL", "" + image.getImageUrl());
-                        Log.i("IMAGE THUMBNAIL URL", "" + image.getThumbnailUrl());
+//                        Log.i("IMAGE ID", "" + image.getId());
+//                        Log.i("IMAGE NAME", "" + image.getName());
+//                        Log.i("IMAGE URL", "" + image.getImageUrl());
+//                        Log.i("IMAGE THUMBNAIL URL", "" + image.getThumbnailUrl());
                         for(int j = 0; j < bookmarkList.size(); j++){
                             if(image.getId().equals(bookmarkList.get(j).getId())){
                                 image.setBookmark(true);
@@ -383,6 +383,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void displayPhotos(List<FacebookImage> data) {
         rvPhotos.setAdapter(new FacebookImageAdapter(getLayoutInflater(), Picasso.with(this), data));
+
         rvPhotos.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
@@ -484,6 +485,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     .resize(1280, 960)
                     .centerCrop()
                     .into(ivFacebookPhoto);
+
             tvImageName.setText(facebookImage.getName());
             tvImageTime.setText(facebookImage.getCreatedTime());
             //set image view
@@ -544,7 +546,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         @Override
         public void onBindViewHolder(FacebookImageVH holder, int position) {
             holder.bind(facebookImages.get(position));
-            holder.tvImageSize.setText("photo height = " + holder.ivFacebookPhoto.getHeight() + ", photo width = " + holder.ivFacebookPhoto.getWidth());
         }
 
         @Override

@@ -1,15 +1,18 @@
 package com.hasbrain.milestonetest.model;
 
+import java.io.Serializable;
+
 /**
  * Created by Jupiter (vu.cao.duy@gmail.com) on 1/5/16.
  */
-public class FacebookImage {
+public class FacebookImage implements Serializable{
     private String id;
     private String name;
     private String imageUrl;
     private String thumbnailUrl;
     private String createdTime;
     private String fromUserName;
+    private boolean bookmark;
 
     public String getId() {
         return id;
@@ -57,5 +60,13 @@ public class FacebookImage {
 
     public void setFromUserName(String fromUserName) {
         this.fromUserName = fromUserName;
+    }
+
+    public void setBookmark(boolean bookmark){
+        this.bookmark = bookmark;
+    }
+
+    public boolean isBookmark(){
+        return bookmark;
     }
 }
