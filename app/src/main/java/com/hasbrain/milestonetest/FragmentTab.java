@@ -100,10 +100,7 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
 
     public static final String ARG_PAGE = "ARG_PAGE";
     String url;
-    String afterpost="";
-    String currentpost="";
-    private View footerView;
-    private ProgressBar spinner;
+
     private int mPage;
 
     public static FragmentTab newInstance(int page) {
@@ -128,12 +125,7 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
 
 
 
-        if(mPage==1){
-            url="https://www.reddit.com/r/androiddev/hot.json";
-        }
-        if(mPage==2){
-            url="https://www.reddit.com/r/movies/hot.json";
-        }
+
 
         final View view = inflater.inflate(R.layout.activity_main, container, false);
 
@@ -172,7 +164,13 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
                 openCameraForImage();
             }
         });
-        getUserPhotos(TYPE_UPLOADED, null);
+        if(mPage==1){
+            getUserPhotos(TYPE_UPLOADED, null);
+        }
+        if(mPage==2){
+           displayPhotos(bookmarkList);
+        }
+
         gson = new GsonBuilder()
                 .registerTypeAdapter(FacebookImage.class, new FacebookImageDeserializer())
                 .registerTypeAdapter(FacebookPhotoResponse.class, new FacebookPhotoResponseDeserializer())
@@ -213,8 +211,14 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
 
     @Override
     public void onRefresh() {
-        facebookImageContainer.clear();
-        getUserPhotos(TYPE_UPLOADED, null);
+
+        if(mPage==1){
+            facebookImageContainer.clear();
+            getUserPhotos(TYPE_UPLOADED, null);
+        }
+        if(mPage==2){
+            displayPhotos(bookmarkList);
+        }
 
     }
 
@@ -408,6 +412,7 @@ public class FragmentTab extends Fragment implements SwipeRefreshLayout.OnRefres
     }
 
     private void displayPhotos(List<FacebookImage> data) {
+        rvPhotos.setAdapter(new FacebookImageAdapter(getActivity().getLayoutInflater(), Picasso.with(getActivity()), data));
         rvPhotos.setAdapter(new FacebookImageAdapter(getActivity().getLayoutInflater(), Picasso.with(getActivity()), data));
         rvPhotos.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
